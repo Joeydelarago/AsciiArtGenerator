@@ -1,3 +1,4 @@
+from typing import Tuple
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
@@ -30,7 +31,7 @@ class GeneratorWindow(QDialog):
         self.setMinimumHeight(520)
 
     def createRightGroup(self):
-        self.rightGroup = QGroupBox("Right Group")
+        self.rightGroup = QGroupBox()
 
         self.image_label = QLabel("")
         pixmap = QtGui.QPixmap("")
@@ -47,9 +48,6 @@ class GeneratorWindow(QDialog):
         copyAsciiButton = QPushButton("Copy Ascii")
         copyAsciiButton.clicked.connect(self.copy_ascii)
 
-        generateImageButton = QPushButton("Generate Image")
-        generateImageButton.clicked.connect(self.generate_image)
-
         topLayout = QVBoxLayout()
 
         bottomLayout = QVBoxLayout()
@@ -64,31 +62,24 @@ class GeneratorWindow(QDialog):
         bottomLayout.addWidget(loadImageButton)
         bottomLayout.addWidget(saveImageButton)
         bottomLayout.addWidget(copyAsciiButton)
-        bottomLayout.addWidget(generateImageButton)
 
         self.rightGroup.setLayout(outerLayout)
 
     def createLeftGroup(self):
-        self.leftGroup = QGroupBox("Left Group")
-
-        checkBox = QCheckBox("Dynamic Text Color")
-        checkBox.setChecked(False)
+        self.leftGroup = QGroupBox()
 
         bgColorButton = QPushButton("Background Color")
-        bgColorButton.pressed.connect(
-            lambda: self.set_bg_color(self.color_picker(self.bg_color)))
+        bgColorButton.pressed.connect(self.set_bg_color)
 
         fontColorButton = QPushButton("Font Color")
-        fontColorButton.pressed.connect(
-            lambda: self.set_font_color(self.color_picker(self.font_color)))
+        fontColorButton.pressed.connect(self.set_font_color)
 
-        dynamicTextCheckBox = QCheckBox("Dynamic Color")
-        dynamicTextCheckBox.toggled.connect(lambda: self.update_dynamic_text(
-            dynamicTextCheckBox.isChecked(), fontColorButton))
+        dynamicTextColorCheckBox = QCheckBox("Dynamic Font Color")
+        dynamicTextColorCheckBox.toggled.connect(lambda: self.set_dynamic_color(dynamicTextColorCheckBox.isChecked(), fontColorButton))
 
         layout = QVBoxLayout()
-        layout.addWidget(dynamicTextCheckBox)
         layout.addWidget(bgColorButton)
+        layout.addWidget(dynamicTextColorCheckBox)
         layout.addWidget(fontColorButton)
 
         layout.addStretch()
@@ -100,14 +91,6 @@ class GeneratorWindow(QDialog):
             image_name = self.asciiImageGenerator.create_ascii_image()
             self.update_image(image_name)
 
-    def load_image(self):
-        input_image_name, _ = QFileDialog.getOpenFileName(
-            self, 'Open file', '.', "Image files (*.jpg *.gif *.png)")
-
-        if input_image_name:
-            self.asciiImageGenerator.set_input_image(input_image_name)
-            self.update_image(input_image_name)
-
     def update_image(self, image_name: str):
         pixmap = QtGui.QPixmap(image_name)
 
@@ -115,25 +98,50 @@ class GeneratorWindow(QDialog):
 
         self.image_label.setPixmap(pixmap)
 
+
+    def load_image(self):
+        input_image_name, _ = QFileDialog.getOpenFileName(
+            self, 'Open file', '.', "Image files (*.jpg *.gif *.png)")
+
+        if (input_image_name):
+            self.asciiImageGenerator.set_input_image(input_image_name)
+            self.update_image(input_image_name)
+            self.generate_image()
+
     def save_image(self):
-        print("save")
+        output_image_name, _ = QFileDialog.getSaveFileName(self, 'Save File')
+        
+        if (output_image_name):
+            self.asciiImageGenerator.save_image(output_image_name)
 
     def copy_ascii(self):
-        print("copy ascii")
+        cb = QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setText(self.asciiImageGenerator.get_ascii_text(), mode=cb.Clipboard)
 
     def color_picker(self, color):
         dlg = QtWidgets.QColorDialog(self)
         if color:
-            dlg.setCurrentColor(QtGui.QColor(color))
+            dlg.setCurrentColor(QtGui.QColor.toRgb(color))
 
         if dlg.exec_():
-            return dlg.currentColor().name()
+            return dlg.currentColor()
 
-    def update_dynamic_text(self, state, fontColorButton):
-        fontColorButton.setEnabled(not state)
+    def set_bg_color(self):
+        bg_color = self.color_picker(self.bg_color)
+        if (bg_color):
+            self.bg_color = bg_color
+            self.asciiImageGenerator.set_background_color(bg_color.getRgb())
+            self.generate_image()
 
-    def set_bg_color(self, bg_color):
-        self.bg_color = bg_color
-
-    def set_font_color(self, font_color):
-        self.font_color = font_color
+    def set_font_color(self):
+        font_color = self.color_picker(self.font_color)
+        if (font_color):
+            self.font_color = font_color
+            self.asciiImageGenerator.set_font_color(font_color.getRgb())
+            self.generate_image()
+        
+    def set_dynamic_color(self, dynamic_color: bool, fontColorButton: QPushButton):
+        fontColorButton.setEnabled(not dynamic_color)
+        self.asciiImageGenerator.set_dynamic_color(dynamic_color)
+        self.generate_image()

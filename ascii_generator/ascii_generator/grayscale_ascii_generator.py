@@ -1,25 +1,16 @@
+from typing import Tuple
 from PIL import Image, ImageDraw, ImageOps
 import numpy as np
 import sys
 
 
 class AsciiImageGenerator():
-    def main():
-        try:
-            if (len(sys.argv) < 3):
-                print("Please provide two arguments, input and output")
-                exit()
-
-            input_file = sys.argv[-2]
-            output_file = sys.argv[-1]
-            ascii_image = create_ascii_image(input_file)
-            ascii_image.save(output_file)
-        except:
-            exit()
-
     def __init__(self):
         self.max_width = 128
         self.pallette = [".", "*", "-", "~", "+", "=", "1", "0", "@", "#"]
+        self.dynamic_color = False
+        self.font_color = (255, 255, 255)
+        self.background_color = (30, 30, 30)
 
         self.image_array = None
         self.image_array_grayscale = None
@@ -48,7 +39,7 @@ class AsciiImageGenerator():
         image_width = width*10
         image_height = height*10
 
-        image = Image.new("RGB", (image_width, image_height), (30, 30, 30))
+        image = Image.new("RGB", (image_width, image_height), self.background_color)
 
         draw = ImageDraw.Draw(image)
 
@@ -56,10 +47,25 @@ class AsciiImageGenerator():
             for y in range(height):
                 coordinates = (x*10, y*10)
                 ascii_character = ascii[x][y]
-                color = tuple(image_array[x][y])
+                if (self.dynamic_color):
+                    color = tuple(image_array[x][y])
+                else:
+                    color = self.font_color
+                
                 draw.text(coordinates, ascii_character, color)
 
         return image
+    
+    def get_ascii_text(self):
+        ascii = ""
+        
+        if(not self.ascii_array):
+            return ascii
+        
+        for row in self.ascii_array:
+            ascii = ascii + ''.join(row) + "\n"
+        
+        return ascii
 
     def save_image(self, file: str):
         if self.output_image:
@@ -83,7 +89,12 @@ class AsciiImageGenerator():
 
     def set_pallette(self, pallette: list):
         self.pallette = pallette
-
-    def print_array(self, array):
-        for row in array:
-            print(row)
+        
+    def set_dynamic_color(self, dynamic_color: bool):
+        self.dynamic_color = dynamic_color
+        
+    def set_font_color(self, font_color: Tuple[int, int, int, int]):
+        self.font_color = font_color
+        
+    def set_background_color(self, background_color: Tuple[int, int, int, int]):
+        self.background_color = background_color
